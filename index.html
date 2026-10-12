@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Солнечная система — интерактивная демонстрация</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ================= ЗАГРУЗЧИК ================= -->
+<div id="loader">
+  <div class="loader-inner">
+    <div class="loader-sun"></div>
+    <div class="loader-orbit"><i></i></div>
+    <div class="loader-title">СОЛНЕЧНАЯ СИСТЕМА</div>
+    <div class="loader-sub" id="loaderStatus">инициализация…</div>
+    <div class="loader-bar"><span id="loaderFill"></span></div>
+  </div>
+</div>
+
+<!-- ================= КАНВАС ================= -->
+<canvas id="scene"></canvas>
+
+<!-- Виньетка и зерно поверх сцены для «кинематографичности» -->
+<div id="vignette"></div>
+<div id="grain"></div>
+
+<!-- ================= ВЕРХНЯЯ ПАНЕЛЬ ================= -->
+<header id="topbar">
+  <div class="brand">
+    <div class="brand-mark"></div>
+    <div class="brand-text">
+      <b>СОЛНЕЧНАЯ СИСТЕМА</b>
+      <span id="brandSub">интерактивная модель · 8 планет</span>
+    </div>
+  </div>
+
+  <nav id="chipbar"></nav>
+
+  <div class="topbar-right">
+    <button class="icon-btn" id="btnLabels" title="Подписи планет (L)">
+      <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h10M4 17h7"/></svg>
+    </button>
+    <button class="icon-btn" id="btnOrbits" title="Орбиты (O)">
+      <svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="9" ry="5"/><circle cx="12" cy="12" r="2.4"/></svg>
+    </button>
+    <button class="icon-btn" id="btnBelts" title="Пояса астероидов и Койпера (B)">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><ellipse cx="12" cy="12" rx="10" ry="6.5"/><circle cx="21" cy="10" r="1.3" fill="currentColor" stroke="none"/><circle cx="3" cy="14" r="1" fill="currentColor" stroke="none"/></svg>
+    </button>
+    <button class="icon-btn" id="btnReset" title="Сбросить вид (R)">
+      <svg viewBox="0 0 24 24"><path d="M12 5a7 7 0 1 0 7 7"/><path d="M12 2.5V7h4.5"/></svg>
+    </button>
+    <button class="icon-btn" id="btnFull" title="Полный экран (F)">
+      <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ================= КАРТОЧКА ПЛАНЕТЫ ================= -->
+<aside id="card" class="hidden" aria-hidden="true">
+  <button id="cardClose" title="Закрыть (Esc)">
+    <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+
+  <div class="card-hero">
+    <div class="hero-glow" id="heroGlow"></div>
+    <canvas id="heroBall" width="320" height="320"></canvas>
+    <div class="hero-fade"></div>
+  </div>
+
+  <div class="card-head">
+    <div class="card-kicker" id="cardKicker">ПЛАНЕТА</div>
+    <h1 id="cardName">Земля</h1>
+    <p id="cardTagline">Голубая планета</p>
+  </div>
+
+  <div class="card-stats" id="cardStats"></div>
+
+  <div class="card-section">
+    <div class="sec-title">Сравнение размеров</div>
+    <div id="sizeCompare"></div>
+  </div>
+
+  <div class="card-section">
+    <div class="sec-title">Год и сутки</div>
+    <div id="periodViz"></div>
+  </div>
+
+  <div class="card-section">
+    <div class="sec-title">Факты</div>
+    <ul id="cardFacts"></ul>
+  </div>
+
+  <div class="card-actions">
+    <button class="pill" id="btnFlyTo">Приблизиться</button>
+    <button class="pill pill-ghost" id="btnCompare" hidden>Сравнить</button>
+  </div>
+</aside>
+
+<!-- ================= НИЖНЯЯ ПАНЕЛЬ УПРАВЛЕНИЯ ================= -->
+<footer id="controls">
+  <div class="ctrl-left">
+    <button id="btnPlay" class="play-btn" title="Пуск / Пауза (пробел)">
+      <svg class="ico-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>
+      <svg class="ico-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>
+    </button>
+
+    <button class="mini-btn" id="btnBack" title="Шаг назад">
+      <svg viewBox="0 0 24 24"><path d="M11 6l-6 6 6 6M19 6l-6 6 6 6"/></svg>
+    </button>
+    <button class="mini-btn" id="btnFwd" title="Шаг вперёд">
+      <svg viewBox="0 0 24 24"><path d="M13 6l6 6-6 6M5 6l6 6-6 6"/></svg>
+    </button>
+
+    <div class="date-block">
+      <div class="date-label">Прошло времени</div>
+      <div class="date-value" id="elapsed">0 суток</div>
+    </div>
+  </div>
+
+  <div class="ctrl-mid">
+    <div class="speed-row">
+      <span class="speed-cap">СКОРОСТЬ</span>
+      <input type="range" id="speed" min="-3" max="3" step="0.01" value="0">
+    </div>
+    <div class="speed-row2">
+      <button class="preset" data-speed="-6">÷25</button>
+      <button class="preset" data-speed="-4">÷10</button>
+      <button class="preset active" data-speed="0">×1</button>
+      <button class="preset" data-speed="3">1 мес/с</button>
+      <button class="preset" data-speed="5">1 год/с</button>
+      <span class="speed-readout" id="speedReadout">×1</span>
+    </div>
+  </div>
+
+  <div class="ctrl-right">
+    <div class="toggle-row">
+      <label class="switch">
+        <input type="checkbox" id="tgTrails" checked>
+        <span></span>
+        <em>Следы орбит</em>
+      </label>
+      <label class="switch">
+        <input type="checkbox" id="tgReal" checked>
+        <span></span>
+        <em>Реальные пропорции</em>
+      </label>
+      <label class="switch">
+        <input type="checkbox" id="tgBelts" checked>
+        <span></span>
+        <em>Пояса</em>
+      </label>
+    </div>
+    <div class="hint">Колесо — зум · ЛКМ — вращение · Клик по объекту — инфо · 1–8 планеты · 0 Солнце · M Луна</div>
+  </div>
+</footer>
+
+<!-- ================= ПОДСКАЗКА-ПРИЦЕЛ ================= -->
+<div id="reticle">
+  <span></span><span></span><span></span><span></span>
+  <div id="reticleLabel"></div>
+</div>
+
+<!-- ================= ТУЛТИП НАВЕДЕНИЯ ================= -->
+<div id="hoverTip"></div>
+
+<script type="importmap">
+{ "imports": { "three": "./lib/three.module.min.js" } }
+</script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
